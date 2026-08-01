@@ -23,6 +23,7 @@ export const riotAccountPingTask = schemaTask({
     //Parse puuidURL to obtain puuid to fetch match history (List[String]) for the user
     const puuidData = await puuidResponse.json();
     const {puuid} = puuidData;
+    //Fetch match history using PUUID
     logger.log(`Fetching ${gameName} #${tagLine}'s match history`, {puuidData, ctx});
     const matchURL = `https://americas.api.riotgames.com/tft/match/v1/matches/by-puuid/${encodeURIComponent(puuid)}/ids`
     const matchResponse = await fetch(matchURL, {headers: {"X-Riot-Token": process.env.RIOT_API_KEY}});
@@ -30,7 +31,7 @@ export const riotAccountPingTask = schemaTask({
       throw new Error(`User "${gameName} #${tagLine}" not found`);
     }
     const matchHistory = await matchResponse.json();
+
     return {puuid, matchHistory: matchHistory};
-    return await matchResponse.json();
   },
 });
