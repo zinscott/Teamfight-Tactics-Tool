@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.0",
     "@trigger.dev/sdk": "4.5.9",
     "zod": "^3.25.76"
   },
