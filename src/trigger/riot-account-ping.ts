@@ -11,7 +11,7 @@ export const riotAccountPingTask = schemaTask({
   run: async (payload, { ctx }) => {
     const {gameName, tagLine} = payload;
     if(!process.env.RIOT_API_KEY){
-      throw new Error("RIOT_API_KEY not set or old")
+      throw new Error("RIOT_API_KEY not set or old");
     }
     //Fetch riot account using game name and tag line ex. Raccoon Scooter #RACC
     logger.log("Fetching Riot Account", {payload, ctx});
@@ -25,7 +25,7 @@ export const riotAccountPingTask = schemaTask({
     const {puuid} = puuidData;
     //Fetch match history using PUUID
     logger.log(`Fetching ${gameName} #${tagLine}'s match history`, {puuidData, ctx});
-    const matchURL = `https://americas.api.riotgames.com/tft/match/v1/matches/by-puuid/${encodeURIComponent(puuid)}/ids`
+    const matchURL = `https://americas.api.riotgames.com/tft/match/v1/matches/by-puuid/${encodeURIComponent(puuid)}/ids`;
     const matchResponse = await fetch(matchURL, {headers: {"X-Riot-Token": process.env.RIOT_API_KEY}});
     if(!matchResponse.ok){
       throw new Error(`User "${gameName} #${tagLine}" not found`);
