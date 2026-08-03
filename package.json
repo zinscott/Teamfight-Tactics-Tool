@@ -4,6 +4,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@trigger.dev/build": "4.5.9"
+    "@trigger.dev/build": "4.5.9",
+    "@types/node": "^26.1.2"
   }
 }
