@@ -13,14 +13,14 @@ async function fetchTierCount(tier: string) {
 }
 
 async function fetchDiamondCount(division: string) {
-    if (!process.env.RIOT_API_KEY) {
+    if(!process.env.RIOT_API_KEY){
       throw new Error(`Incorrect Riot API Key`);
     }
   
     let page = 1;
     let total = 0;
   
-    while (true) {
+    while(true){
       const url = `https://na1.api.riotgames.com/tft/league/v1/entries/DIAMOND/${division}?page=${page}`;
       const response = await fetch(url, { headers: { "X-Riot-Token": process.env.RIOT_API_KEY } });
       if (!response.ok) {
@@ -41,7 +41,7 @@ async function fetchDiamondCount(division: string) {
 export const seedSummonersTask = task({
     id: "seed-summoners",
     queue: {
-        concurrencyLimit: 1,
+        concurrencyLimit: 1
     },
     run: async () => {
         const chalData = await fetchTierCount("challenger");
