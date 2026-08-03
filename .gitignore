@@ -1,5 +1,5 @@
 .trigger
-.supabase-write-test.ts
+supabase-write-test.ts
 
 # Node
 node_modules/
