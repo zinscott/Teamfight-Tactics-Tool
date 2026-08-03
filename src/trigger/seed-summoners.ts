@@ -40,6 +40,9 @@ async function fetchDiamondCount(division: string) {
 
 export const seedSummonersTask = task({
     id: "seed-summoners",
+    queue: {
+        concurrencyLimit: 1,
+    },
     run: async () => {
         const chalData = await fetchTierCount("challenger");
         logger.log(`Challenger count: ${chalData}`);
