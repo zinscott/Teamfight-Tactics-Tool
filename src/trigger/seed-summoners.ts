@@ -1,6 +1,7 @@
-import {task, logger} from "@trigger.dev/sdk";
+import {task, logger, wait} from "@trigger.dev/sdk";
 import { createClient } from "@supabase/supabase-js";
 
+//Connect to supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!supabaseUrl){
@@ -11,15 +12,31 @@ if(!supabaseKey){
 }
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+//helper function to fetch the Riot API URL with auth
+async function riotFetch(url: string) {
+    while(true){
+        if(!process.env.RIOT_API_KEY){
+            throw new Error(`Incorrect Riot API Key`);
+        }
+        const response = await fetch(url, {headers: {"X-Riot-Token": process.env.RIOT_API_KEY}});
+        //on 429 wait for retryAfter and automatically retry instead of throw
+        if(response.status===429){
+            const retryAfter = Number(response.headers.get("Retry-After") ?? "1");
+            await wait.for({seconds: retryAfter});
+            continue;
+        }
+        if(!response.ok){
+            throw new Error(`Riot API returned ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    }
+}
+
 async function fetchTier(tiers: string) {
-    if(!process.env.RIOT_API_KEY){
-        throw new Error(`Incorrect Riot API Key`);
-    }
-    const response = await fetch(`https://na1.api.riotgames.com/tft/league/v1/${tiers}`, {headers: {"X-Riot-Token": process.env.RIOT_API_KEY}});
-    if(!response.ok){
-        throw new Error(`Riot API returned ${response.status}`);
-    }
-    const data = await response.json();
+    const url = `https://na1.api.riotgames.com/tft/league/v1/${tiers}`;
+    const data = await riotFetch(url);
+    //Each entry is a {puuid, tier, division} row ready for the tracked_summoners upsert
     return data.entries.map((entry: {puuid: string}) => ({
         puuid: entry.puuid,
         tier: data.tier,
@@ -28,37 +45,30 @@ async function fetchTier(tiers: string) {
 }
 
 async function fetchDiamond(division: string) {
-    if(!process.env.RIOT_API_KEY){
-      throw new Error(`Incorrect Riot API Key`);
-    }
-  
     let page = 1;
     const puuids: {puuid: string; tier: string}[] = [];
-  
     while(true){
       const url = `https://na1.api.riotgames.com/tft/league/v1/entries/DIAMOND/${division}?page=${page}`;
-      const response = await fetch(url, { headers: { "X-Riot-Token": process.env.RIOT_API_KEY } });
-      if (!response.ok) {
-        throw new Error(`Riot API returned ${response.status}`);
-      }
-      const entries = await response.json();
-      if (entries.length === 0) {
+      const data = await riotFetch(url);
+      if (data.length === 0) {
         break;
       }
-      puuids.push(...entries.map((entry: {puuid: string}) =>({
+      //adds spreaded items onto puuid array
+      //"..." unpacks array into individual items so avoid adding whole array as one nested element
+      puuids.push(...data.map((entry: {puuid: string}) =>({
         puuid: entry.puuid, 
         tier: "DIAMOND",
         division
       })));
       page++;
     }
-  
     return puuids;
   }
   
 
 export const seedSummonersTask = task({
     id: "seed-summoners",
+    //prevents overlapping runs in a scheduled run
     queue: {
         concurrencyLimit: 1
     },
@@ -79,6 +89,7 @@ export const seedSummonersTask = task({
         logger.log("Challenger done");  
         
         const allSummoners = [...chalData, ...gmData, ...masData, ...d1Data, ...d2Data, ...d3Data, ...d4Data];
+        //dedupe by puuid, live ladder update can shift a puuid mid crawl
         const uniqueSummoners = Array.from(new Map(allSummoners.map(s => [s.puuid,s])).values())
         const {data, error} = await supabase.from("tracked_summoners").upsert(uniqueSummoners, {onConflict: "puuid"}).select();
         
