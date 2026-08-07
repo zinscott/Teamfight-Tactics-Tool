@@ -1,4 +1,4 @@
-import {task, logger, wait} from "@trigger.dev/sdk";
+import {task, logger, schedules} from "@trigger.dev/sdk";
 import { createClient } from "@supabase/supabase-js";
 import {riotFetch} from "./riot-api";
 
@@ -46,8 +46,9 @@ async function fetchDiamond(division: string) {
   }
   
 
-export const seedSummonersTask = task({
+export const seedSummonersTask = schedules.task({
     id: "seed-summoners",
+    cron: "0 6 * * *",
     //prevents overlapping runs in a scheduled run
     queue: {
         concurrencyLimit: 1
