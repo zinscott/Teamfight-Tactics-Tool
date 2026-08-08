@@ -24,7 +24,12 @@ export const fetchMatchHistory = schemaTask({
     const {puuid} = payload;
     const url = `https://americas.api.riotgames.com/tft/match/v1/matches/by-puuid/${puuid}/ids`;
     const data = await riotFetch(url);
+    let processedCount = 0;
     for (const matchId of data){
+      const {data: existingMatch} = await supabase.from("match_history").select("match_id").eq("match_id", matchId).maybeSingle();
+      if(existingMatch){
+        continue;
+      }
       const matchUrl = `https://americas.api.riotgames.com/tft/match/v1/matches/${matchId}`;
       const matchData = await riotFetch(matchUrl);
 
@@ -64,8 +69,9 @@ export const fetchMatchHistory = schemaTask({
         logger.log(`Supabase insert failed at match_participant: ${participantError.message}`);
         throw new Error(`Supabase insert failed at match_participant: ${participantError.message}`)
       }
+      processedCount++;
     }
     //return count of matches processed
-    return {matchesProcessed: data.length};
+    return {matchesProcessed: processedCount};
   },
 });
