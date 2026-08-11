@@ -44,14 +44,14 @@ export const fetchMatchHistory = schemaTask({
         tft_set_core_name: matchData.info.tft_set_core_name,
         tft_set_number: matchData.info.tft_set_number
       };
-
-      const {error: historyError} = await supabase.from("match_history").upsert(matchHistoryRow, {onConflict: "match_id"}).select();
-      if(historyError){
-        logger.log(`Supabase insert failed at match_history: ${historyError.message}`);
-        throw new Error(`Supabase insert failed at match_history: ${historyError.message}`);
-      }
       //only on a normal or ranked match, no "for fun" game modes
       if(matchHistoryRow.queue_id===1100 || matchHistoryRow.queue_id===1090){
+        const {error: historyError} = await supabase.from("match_history").upsert(matchHistoryRow, {onConflict: "match_id"}).select();
+        if(historyError){
+          logger.log(`Supabase insert failed at match_history: ${historyError.message}`);
+          throw new Error(`Supabase insert failed at match_history: ${historyError.message}`);
+        }
+        
         const matchParticipantRows = matchData.info.participants.map((participant: {puuid: string; win: boolean; placement: number; traits: unknown[]; units: unknown[];})=>({
           //match_id isn't on the participant object itself, attach it from the match row
           match_id: matchHistoryRow.match_id,
