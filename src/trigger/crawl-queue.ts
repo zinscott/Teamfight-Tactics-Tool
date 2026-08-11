@@ -15,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const crawlQueue = schedules.task({
     id: "crawl-queue",
-    cron: "0 */3 * * *",
+    cron: "0 * * * *",
     run: async () => {
         const fetchMatchHistoryQueue = await queues.retrieve({type: "task", name: "fetch-match-history"});
         if(fetchMatchHistoryQueue.running > 0 || fetchMatchHistoryQueue.queued > 0){
