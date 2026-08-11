@@ -1,0 +1,1 @@
+ALTER TABLE match_history ALTER COLUMN queue_id SET NOT NULL;
