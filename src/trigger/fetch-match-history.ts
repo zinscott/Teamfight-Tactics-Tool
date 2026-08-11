@@ -21,7 +21,7 @@ export const fetchMatchHistory = schemaTask({
   schema: z.object({
     puuid: z.string()
   }),
-  queue: {concurrencyLimit: 1},
+  queue: {concurrencyLimit: 10},
   run: async (payload, {ctx}) => {
     const {puuid} = payload;
     const url = `https://americas.api.riotgames.com/tft/match/v1/matches/by-puuid/${puuid}/ids`;
