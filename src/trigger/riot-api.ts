@@ -1,4 +1,4 @@
-import {wait} from "@trigger.dev/sdk";
+import {wait, logger} from "@trigger.dev/sdk";
 
 //helper function to fetch the Riot API URL with auth
 export async function riotFetch(url: string) {
@@ -10,6 +10,7 @@ export async function riotFetch(url: string) {
         //on 429 wait for retryAfter and automatically retry instead of throw
         if(response.status===429){
             const retryAfter = Number(response.headers.get("Retry-After") ?? "1");
+            logger.log(`Rate Limited, waiting ${retryAfter}s`, {url})
             await wait.for({seconds: retryAfter});
             continue;
         }
