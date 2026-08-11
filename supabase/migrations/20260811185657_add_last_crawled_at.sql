@@ -1,0 +1,1 @@
+ALTER TABLE tracked_summoners ADD COLUMN last_crawled_at timestamptz;
