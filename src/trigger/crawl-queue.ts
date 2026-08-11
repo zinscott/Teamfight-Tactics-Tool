@@ -15,14 +15,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const crawlQueue = schedules.task({
     id: "crawl-queue",
-    cron: "0/30 * * * *",
+    cron: "0/5 * * * *",
     run: async () => {
         const fetchMatchHistoryQueue = await queues.retrieve({type: "task", name: "fetch-match-history"});
         if(fetchMatchHistoryQueue.running > 0 || fetchMatchHistoryQueue.queued > 0){
             logger.log("previous batch still draining, skipping this cycle", {fetchMatchHistoryQueue});
             return;
         }
-        const {data: summoners, error} = await supabase.from("tracked_summoners").select("puuid").not("tier","is","null").order("last_crawled_at", {ascending: true, nullsFirst: true}).limit(500);
+        const {data: summoners, error} = await supabase.from("tracked_summoners").select("puuid").not("tier","is","null").order("last_crawled_at", {ascending: true, nullsFirst: true}).limit(1000);
         if(error){
             logger.log(`Supabase select failed: ${error.message}`);
             throw new Error(`Supabase select failed: ${error.message}`);
