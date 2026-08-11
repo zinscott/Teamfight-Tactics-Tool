@@ -77,6 +77,7 @@ export const fetchMatchHistory = schemaTask({
         processedCount++;
       } 
     }
+    await supabase.from("tracked_summoners").update({ last_crawled_at: new Date().toISOString() }).eq("puuid", puuid);
     //return count of matches processed
     return {matchesProcessed: processedCount};
   },
