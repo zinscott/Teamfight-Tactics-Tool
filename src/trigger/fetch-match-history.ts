@@ -52,13 +52,13 @@ export const fetchMatchHistory = schemaTask({
           throw new Error(`Supabase insert failed at match_history: ${historyError.message}`);
         }
         
-        const matchParticipantRows = matchData.info.participants.map((participant: {puuid: string; win: boolean; placement: number; traits: unknown[]; units: unknown[];})=>({
+        const matchParticipantRows = matchData.info.participants.map((participant: {puuid: string; win: boolean; placement: number; /*traits: unknown[];*/ units: unknown[];})=>({
           //match_id isn't on the participant object itself, attach it from the match row
           match_id: matchHistoryRow.match_id,
           puuid: participant.puuid,
           win: participant.win,
           placement: participant.placement,
-          traits: participant.traits,
+          //traits: participant.traits,
           units: participant.units,
         }));
         
