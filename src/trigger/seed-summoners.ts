@@ -48,7 +48,7 @@ async function fetchDiamond(division: string) {
 
 export const seedSummonersTask = schedules.task({
     id: "seed-summoners",
-    //cron: "0 1 * * *",
+    cron: "0 1 * * *",
     //prevents overlapping runs in a scheduled run
     queue: {
         concurrencyLimit: 1
