@@ -48,13 +48,13 @@ async function fetchDiamond(division: string) {
 
 export const seedSummonersTask = schedules.task({
     id: "seed-summoners",
-    cron: "0 1 * * *",
+    //cron: "0 1 * * *",
     //prevents overlapping runs in a scheduled run
     queue: {
         concurrencyLimit: 1
     },
     run: async () => {
-        const d4Data = await fetchDiamond("IV");
+        /*const d4Data = await fetchDiamond("IV");
         logger.log("D4 done");
         const d3Data = await fetchDiamond("III");
         logger.log("D3 done");
@@ -63,13 +63,14 @@ export const seedSummonersTask = schedules.task({
         const d1Data = await fetchDiamond("I");
         logger.log("D1 done");
         const masData = await fetchTier("master");
-        logger.log("Master done");
+        logger.log("Master done");*/
         const gmData = await fetchTier("grandmaster");
         logger.log("GM done");
         const chalData = await fetchTier("challenger");
         logger.log("Challenger done");  
         
-        const allSummoners = [...chalData, ...gmData, ...masData, ...d1Data, ...d2Data, ...d3Data, ...d4Data];
+        //const allSummoners = [...chalData, ...gmData, ...masData, ...d1Data, ...d2Data, ...d3Data, ...d4Data];
+        const allSummoners = [...chalData, ...gmData];
         //dedupe by puuid, live ladder update can shift a puuid mid crawl
         const uniqueSummoners = Array.from(new Map(allSummoners.map(s => [s.puuid,s])).values())
         const {data, error} = await supabase.from("tracked_summoners").upsert(uniqueSummoners, {onConflict: "puuid"}).select();
