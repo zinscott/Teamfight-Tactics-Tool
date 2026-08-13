@@ -30,7 +30,8 @@ export const crawlQueue = schedules.task({
             .in("tier", ["CHALLENGER", "GRANDMASTER"])
             .or(`last_crawled_at.is.null,last_crawled_at.lt.${oneDayAgo}`)
             .order("last_crawled_at", {ascending: true, nullsFirst: true})
-            .limit(1000);        
+            .limit(250);
+
         if(error){
             logger.log(`Supabase select failed: ${error.message}`);
             throw new Error(`Supabase select failed: ${error.message}`);
