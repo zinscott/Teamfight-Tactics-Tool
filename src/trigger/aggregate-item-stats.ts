@@ -76,6 +76,7 @@ export const itemStats = schedules.task({
                 wins_count: stats.wins,
                 top4_count: stats.top4,
                 avg_placement: Math.round((stats.placementTotal/stats.games)*100)/100,
+                updated_at: new Date().toISOString()
             };
         });
 
