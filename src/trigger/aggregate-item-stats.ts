@@ -1,4 +1,4 @@
-import { schedules, logger, queues } from "@trigger.dev/sdk";
+import { schedules, logger } from "@trigger.dev/sdk";
 import { createClient } from "@supabase/supabase-js";
 
 //Connect to supabase
