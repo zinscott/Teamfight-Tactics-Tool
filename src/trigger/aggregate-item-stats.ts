@@ -136,6 +136,9 @@ export const itemStats = schedules.task({
             logger.log(`Supabase unit_stats upsert failed: ${unitError.message}`);
             throw new Error(`Supabase unit_stats upsert failed: ${unitError.message}`);
         }
+        else{
+            logger.log(`Supabase unit_stats upsert completed`)
+        }
 
         //upsert for item_stats in supabase
         const itemStatsRows = Array.from(itemTally.entries()).map(([key,stats]) => {
@@ -153,10 +156,12 @@ export const itemStats = schedules.task({
         const {error: itemError} = await supabase
             .from("item_stats")
             .upsert(itemStatsRows, {onConflict: "character_id,item_name"});
-
         if(itemError){
             logger.log(`Supabase item_stats upsert failed: ${itemError.message}`);
             throw new Error(`Supabase item_stats upsert failed: ${itemError.message}`);
+        }
+        else{
+            logger.log(`Supabase item_stats upsert completed`)
         }
 
         //upsert for item_pair_stats in supabase
@@ -173,14 +178,20 @@ export const itemStats = schedules.task({
                 updated_at: new Date().toISOString()
             };
         });
-        const {error: pairError} = await supabase
-            .from("item_pair_stats")
-            .upsert(itemPairRows, {onConflict: "character_id,item_a,item_b"});
+        const chunkSize = 500;
+        for (let i = 0; i < itemPairRows.length; i += chunkSize) {
+            const chunk = itemPairRows.slice(i, i + chunkSize);
+            const {error: pairError} = await supabase
+                .from("item_pair_stats")
+                .upsert(chunk, {onConflict: "character_id,item_a,item_b"});
 
-        if(pairError){
-            logger.log(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
-            throw new Error(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
+            if(pairError){
+                logger.log(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
+                throw new Error(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
+            }
+            else{
+                logger.log(`Supabase ${chunkSize} item_pair_stats upsert completed`)
+            }
         }
-
     }
 });
