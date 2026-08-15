@@ -41,11 +41,14 @@ export const itemStats = schedules.task({
             page += pageSize;
         }
 
-        const itemTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
         const unitTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
+        const itemTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
+        const pairTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
 
         for(const board of playerBuild){
             for(const unit of board.units){
+
+                //set up unit stats
                 const unitKey = `${unit.character_id}`;
                 if(!unitTally.has(unitKey)){
                     unitTally.set(unitKey, {games:0,wins:0,top4:0,placementTotal:0});
@@ -60,10 +63,12 @@ export const itemStats = schedules.task({
                         unitCount.top4 += 1;
                     }
                     unitCount.placementTotal += board.placement;
-                //dedupe so a unit with 2x the same item only counts once per game, not twice
+
+                //singleItem stats
+                //dedupe so a unit with 2-3x the same item only counts once per game, not twice
                 //because this is a single item stat it is fine to dedupe
-                const itemSet = new Set(unit.itemNames);
-                for(const item of itemSet){
+                const singleItem = new Set(unit.itemNames);
+                for(const item of singleItem){
                     const itemKey = `${unit.character_id}|${item}`;
                     if(!itemTally.has(itemKey)){
                         itemTally.set(itemKey, {games:0,wins:0,top4:0,placementTotal:0});
@@ -78,9 +83,44 @@ export const itemStats = schedules.task({
                     }
                     entry.placementTotal += board.placement;
                 }
+
+                //itemPair stats
+                const itemCounts = new Map<string, number>();
+                for(const name of unit.itemNames){
+                    itemCounts.set(name,(itemCounts.get(name) ?? 0)+1);
+                }
+                const uniqueItems = Array.from(itemCounts.keys());
+                const pairsPresent = new Set<string>();
+                //if a unit uses 2+ of the same item
+                for(const [name,count] of itemCounts){
+                    if(count>=2){
+                        pairsPresent.add(`${unit.character_id}|${name}|${name}`);
+                    }
+                }
+                //if a unit has unique items
+                for(let i=0; i<uniqueItems.length; i++){
+                    for(let j=i+1; j<uniqueItems.length; j++){
+                        const [a,b] = [uniqueItems[i],uniqueItems[j]].sort();
+                        pairsPresent.add(`${unit.character_id}|${a}|${b}`);
+                    }
+                }
+                for(const pair of pairsPresent){
+                    if(!pairTally.has(pair)){
+                        pairTally.set(pair, {games:0,wins:0,top4:0,placementTotal:0});
+                    }
+                    const pairEntry = pairTally.get(pair)!;
+                    pairEntry.games += 1;
+                    if(board.placement===1){
+                        pairEntry.wins += 1;
+                    }
+                    if(board.win){
+                        pairEntry.top4 += 1;
+                    }
+                    pairEntry.placementTotal += board.placement;
+                }
             }
         }
-
+        //upsert to unit_stats in supabase
         const unitStatRows = Array.from(unitTally.entries()).map(([character_id,stats]) => ({
             character_id,
             games_count: stats.games,
@@ -89,16 +129,16 @@ export const itemStats = schedules.task({
             avg_placement: Math.round((stats.placementTotal/stats.games)*100)/100,
             updated_at: new Date().toISOString()
         }));
-
         const {error: unitError} = await supabase
             .from("unit_stats")
             .upsert(unitStatRows, {onConflict: "character_id"});
         if(unitError){
-            logger.log(`Supabase upsert failed: ${unitError.message}`);
-            throw new Error(`Supabase upsert failed: ${unitError.message}`);
+            logger.log(`Supabase unit_stats upsert failed: ${unitError.message}`);
+            throw new Error(`Supabase unit_stats upsert failed: ${unitError.message}`);
         }
 
-        const itemStatsRows = Array.from(itemTally.entries()).map(([key,stats]) =>{
+        //upsert for item_stats in supabase
+        const itemStatsRows = Array.from(itemTally.entries()).map(([key,stats]) => {
             const [character_id, item_name] = key.split("|");
             return {
                 character_id,
@@ -110,14 +150,37 @@ export const itemStats = schedules.task({
                 updated_at: new Date().toISOString()
             };
         });
-
         const {error: itemError} = await supabase
             .from("item_stats")
             .upsert(itemStatsRows, {onConflict: "character_id,item_name"});
 
         if(itemError){
-            logger.log(`Supabase upsert failed: ${itemError.message}`);
-            throw new Error(`Supabase upsert failed: ${itemError.message}`);
+            logger.log(`Supabase item_stats upsert failed: ${itemError.message}`);
+            throw new Error(`Supabase item_stats upsert failed: ${itemError.message}`);
         }
+
+        //upsert for item_pair_stats in supabase
+        const itemPairRows = Array.from(pairTally.entries()).map(([key, stats]) => {
+            const [character_id, item_a, item_b] = key.split("|");
+            return{
+                character_id,
+                item_a,
+                item_b,
+                games_count: stats.games,
+                wins_count: stats.wins,
+                top4_count: stats.top4,
+                avg_placement: Math.round((stats.placementTotal/stats.games) * 100)/100,
+                updated_at: new Date().toISOString()
+            };
+        });
+        const {error: pairError} = await supabase
+            .from("item_pair_stats")
+            .upsert(itemPairRows, {onConflict: "character_id,item_a,item_b"});
+
+        if(pairError){
+            logger.log(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
+            throw new Error(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
+        }
+
     }
 });
