@@ -42,20 +42,34 @@ export const itemStats = schedules.task({
         }
 
         const itemTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
-        
+        const unitTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
+
         for(const board of playerBuild){
             for(const unit of board.units){
+                const unitKey = `${unit.character_id}`;
+                if(!unitTally.has(unitKey)){
+                    unitTally.set(unitKey, {games:0,wins:0,top4:0,placementTotal:0});
+                }
+                const unitCount = unitTally.get(unitKey)!;
+                    unitCount.games += 1;
+                    //riot returns top 4 as a win I want actual wins (1st)
+                    if(board.placement===1){
+                        unitCount.wins += 1;
+                    }
+                    if(board.win){
+                        unitCount.top4 += 1;
+                    }
+                    unitCount.placementTotal += board.placement;
                 //dedupe so a unit with 2x the same item only counts once per game, not twice
                 //because this is a single item stat it is fine to dedupe
                 const itemSet = new Set(unit.itemNames);
                 for(const item of itemSet){
-                    const key = `${unit.character_id}|${item}`
-                    if(!itemTally.has(key)){
-                        itemTally.set(key, {games:0,wins:0,top4:0,placementTotal:0});
+                    const itemKey = `${unit.character_id}|${item}`;
+                    if(!itemTally.has(itemKey)){
+                        itemTally.set(itemKey, {games:0,wins:0,top4:0,placementTotal:0});
                     }
-                    const entry = itemTally.get(key)!;
+                    const entry = itemTally.get(itemKey)!;
                     entry.games += 1;
-                    //riot returns top 4 as a win I want actual wins (1st)
                     if(board.placement===1){
                         entry.wins += 1;
                     }
@@ -65,6 +79,23 @@ export const itemStats = schedules.task({
                     entry.placementTotal += board.placement;
                 }
             }
+        }
+
+        const unitStatRows = Array.from(unitTally.entries()).map(([character_id,stats]) => ({
+            character_id,
+            games_count: stats.games,
+            wins_count: stats.wins,
+            top4_count: stats.top4,
+            avg_placement: Math.round((stats.placementTotal/stats.games)*100)/100,
+            updated_at: new Date().toISOString()
+        }));
+
+        const {error: unitError} = await supabase
+            .from("unit_stats")
+            .upsert(unitStatRows, {onConflict: "character_id"});
+        if(unitError){
+            logger.log(`Supabase upsert failed: ${unitError.message}`);
+            throw new Error(`Supabase upsert failed: ${unitError.message}`);
         }
 
         const itemStatsRows = Array.from(itemTally.entries()).map(([key,stats]) =>{
@@ -80,13 +111,13 @@ export const itemStats = schedules.task({
             };
         });
 
-        const {error: upsertError} = await supabase
+        const {error: itemError} = await supabase
             .from("item_stats")
             .upsert(itemStatsRows, {onConflict: "character_id,item_name"});
 
-        if(upsertError){
-            logger.log(`Supabase upsert failed: ${upsertError.message}`);
-            throw new Error(`Supabase upsert failed: ${upsertError.message}`);
+        if(itemError){
+            logger.log(`Supabase upsert failed: ${itemError.message}`);
+            throw new Error(`Supabase upsert failed: ${itemError.message}`);
         }
     }
 });
