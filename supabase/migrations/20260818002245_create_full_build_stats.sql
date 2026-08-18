@@ -1,7 +1,9 @@
 CREATE TABLE unit_build_stats (
   character_id text NOT NULL,
-  items text[] NOT NULL,
-  PRIMARY KEY (character_id, items),
+  item_a text NOT NULL,
+  item_b text NOT NULL,
+  item_c text NOT NULL,
+  PRIMARY KEY (character_id, item_a, item_b, item_c),
   games_count int NOT NULL,
   wins_count int NOT NULL,
   top4_count int NOT NULL,
