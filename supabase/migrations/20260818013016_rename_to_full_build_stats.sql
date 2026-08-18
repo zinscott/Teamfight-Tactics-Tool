@@ -1,0 +1,1 @@
+ALTER TABLE unit_build_stats RENAME TO full_build_stats;
