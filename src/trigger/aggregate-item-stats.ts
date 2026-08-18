@@ -44,10 +44,14 @@ export const itemStats = schedules.task({
         const unitTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
         const itemTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
         const pairTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
+        const fullTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
 
         for(const board of playerBuild){
             for(const unit of board.units){
-
+                //EmptyBag means no item equipped, ThiefsGloves will be ignored by pair and full build stats
+                const validItems = unit.itemNames.filter(name => name !== "TFT_Item_EmptyBag");
+                const pairableItems = validItems.filter(name => name !== "TFT_Item_ThiefsGloves");
+                
                 //set up unit stats
                 const unitKey = `${unit.character_id}`;
                 if(!unitTally.has(unitKey)){
@@ -67,7 +71,7 @@ export const itemStats = schedules.task({
                 //singleItem stats
                 //dedupe so a unit with 2-3x the same item only counts once per game, not twice
                 //because this is a single item stat it is fine to dedupe
-                const singleItem = new Set(unit.itemNames);
+                const singleItem = new Set(validItems);
                 for(const item of singleItem){
                     const itemKey = `${unit.character_id}|${item}`;
                     if(!itemTally.has(itemKey)){
@@ -86,7 +90,7 @@ export const itemStats = schedules.task({
 
                 //itemPair stats
                 const itemCounts = new Map<string, number>();
-                for(const name of unit.itemNames){
+                for(const name of pairableItems){
                     itemCounts.set(name,(itemCounts.get(name) ?? 0)+1);
                 }
                 const uniqueItems = Array.from(itemCounts.keys());
@@ -118,6 +122,25 @@ export const itemStats = schedules.task({
                     }
                     pairEntry.placementTotal += board.placement;
                 }
+
+                //3 item builds
+                const sortedItems = [...new Set(pairableItems)].sort();
+                if(sortedItems.length!==3){
+                    continue;
+                }
+                const fullKey = `${unit.character_id}|${sortedItems.join(",")}`;
+                if(!fullTally.has(fullKey)){
+                    fullTally.set(fullKey, {games:0,wins:0,top4:0,placementTotal:0});
+                }
+                const fullEntry = fullTally.get(fullKey)!;
+                fullEntry.games += 1;
+                if(board.placement===1){
+                    fullEntry.wins += 1;
+                }
+                if(board.win){
+                    fullEntry.top4 += 1;
+                }
+                fullEntry.placementTotal += board.placement;
             }
         }
         //upsert to unit_stats in supabase
@@ -190,7 +213,38 @@ export const itemStats = schedules.task({
                 throw new Error(`Supabase item_pair_stats upsert failed: ${pairError.message}`);
             }
             else{
-                logger.log(`Supabase ${chunkSize} item_pair_stats upsert completed`)
+                logger.log(`Supabase ${chunk.length} item_pair_stats upsert completed`)
+            }
+        }
+
+        //upsert for full_build_stats in supabase
+        const fullBuildRows = Array.from(fullTally.entries()).map(([key, stats]) => {
+            const [character_id, itemsJoined] = key.split("|");
+            const [item_a, item_b, item_c] = itemsJoined.split(",");
+            return{
+                character_id,
+                item_a,
+                item_b,
+                item_c,
+                games_count: stats.games,
+                wins_count: stats.wins,
+                top4_count: stats.top4,
+                avg_placement: Math.round((stats.placementTotal/stats.games) * 100)/100,
+                updated_at: new Date().toISOString()
+            };
+        });
+        for (let i = 0; i < fullBuildRows.length; i += chunkSize) {
+            const chunk = fullBuildRows.slice(i, i + chunkSize);
+            const {error: fullError} = await supabase
+                .from("full_build_stats")
+                .upsert(chunk, {onConflict: "character_id,item_a,item_b,item_c"});
+
+            if(fullError){
+                logger.log(`Supabase full_build_stats upsert failed: ${fullError.message}`);
+                throw new Error(`Supabase full_build_stats upsert failed: ${fullError.message}`);
+            }
+            else{
+                logger.log(`Supabase ${chunk.length} full_build_stats upsert completed`)
             }
         }
     }
