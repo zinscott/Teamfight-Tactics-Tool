@@ -89,22 +89,10 @@ export const itemStats = schedules.task({
                 }
 
                 //itemPair stats
-                const itemCounts = new Map<string, number>();
-                for(const name of pairableItems){
-                    itemCounts.set(name,(itemCounts.get(name) ?? 0)+1);
-                }
-                const uniqueItems = Array.from(itemCounts.keys());
                 const pairsPresent = new Set<string>();
-                //if a unit uses 2+ of the same item
-                for(const [name,count] of itemCounts){
-                    if(count>=2){
-                        pairsPresent.add(`${unit.character_id}|${name}|${name}`);
-                    }
-                }
-                //if a unit has unique items
-                for(let i=0; i<uniqueItems.length; i++){
-                    for(let j=i+1; j<uniqueItems.length; j++){
-                        const [a,b] = [uniqueItems[i],uniqueItems[j]].sort();
+                for(let i=0; i<pairableItems.length; i++){
+                    for(let j=i+1; j<pairableItems.length; j++){
+                        const [a,b] = [pairableItems[i],pairableItems[j]].sort();
                         pairsPresent.add(`${unit.character_id}|${a}|${b}`);
                     }
                 }
