@@ -124,7 +124,7 @@ export const itemStats = schedules.task({
                 }
 
                 //3 item builds
-                const sortedItems = [...new Set(pairableItems)].sort();
+                const sortedItems = [...pairableItems].sort();
                 if(sortedItems.length!==3){
                     continue;
                 }
