@@ -36,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans bg-bg text-text">
         {children}
         <Analytics />
-        
+        <SpeedInsights />
       </body>
     </html>
   );
