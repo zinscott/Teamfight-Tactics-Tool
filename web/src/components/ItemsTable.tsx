@@ -6,26 +6,29 @@ import { DrillRow, deriveRates, StatRow } from "@/lib/stats";
 import { ItemMeta } from "@/lib/tft-data";
 import { CYAN } from "@/lib/theme";
 
-type SortKey = "place" | "win" | "top4" | "games";
+type SortKey = "place" | "win" | "top4" | "pick" | "games";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "place", label: "Avg place" },
   { key: "win", label: "Win %" },
   { key: "top4", label: "Top 4 %" },
+  { key: "pick", label: "Pick %" },
   { key: "games", label: "Games" },
 ];
 
-function sortValue(row: StatRow, key: SortKey): number {
-  const { winRate, top4Rate } = deriveRates(row);
+function sortValue(entry: DrillRow<StatRow>, key: SortKey): number {
+  const { winRate, top4Rate } = deriveRates(entry.row);
   switch (key) {
     case "place":
-      return row.avg_placement;
+      return entry.row.avg_placement;
     case "win":
       return winRate;
     case "top4":
       return top4Rate;
+    case "pick":
+      return entry.pickRate;
     case "games":
-      return row.games_count;
+      return entry.row.games_count;
   }
 }
 
@@ -45,7 +48,7 @@ export function ItemsTable({
 
   const sorted = useMemo(() => {
     return [...rows].sort(
-      (a, b) => (sortValue(a.row, sortKey) - sortValue(b.row, sortKey)) * sortDir,
+      (a, b) => (sortValue(a, sortKey) - sortValue(b, sortKey)) * sortDir,
     );
   }, [rows, sortKey, sortDir]);
 
@@ -98,7 +101,8 @@ export function ItemsTable({
         </tr>
       </thead>
       <tbody>
-        {sorted.map(({ row, addItems }, idx) => {
+        {sorted.map((entry, idx) => {
+          const { row, addItems, pickRate } = entry;
           const { winRate, top4Rate } = deriveRates(row);
           const addedName = addItems
             .map((id) => itemMetaById[id]?.name ?? id)
@@ -138,6 +142,17 @@ export function ItemsTable({
               </td>
               <td className="border-b border-hairline px-3 py-2.5 font-mono">
                 {top4Rate.toFixed(1)}%
+              </td>
+              <td className="border-b border-hairline px-3 py-2.5">
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono">{pickRate.toFixed(1)}%</span>
+                  <div className="h-1 w-16 overflow-hidden rounded-full bg-hairline">
+                    <div
+                      className="h-full bg-cyan"
+                      style={{ width: `${Math.min(100, pickRate)}%` }}
+                    />
+                  </div>
+                </div>
               </td>
               <td className="border-b border-hairline px-3 py-2.5 font-mono">
                 {row.games_count.toLocaleString()}

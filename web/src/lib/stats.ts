@@ -50,6 +50,15 @@ function byAvgPlacementAsc(a: StatRow, b: StatRow) {
   return a.avg_placement - b.avg_placement;
 }
 
+// What fraction of `denominator` games this row's games_count represents,
+// as a percentage. `denominator` is the parent state's games_count (e.g.
+// the unit's total for a depth-0 item, or the selected item's total for a
+// depth-1 "next item" row) - i.e. "of games with X, how many also had Y".
+function toPickRate(games: number, denominator: number): number {
+  if (denominator <= 0) return 0;
+  return (games / denominator) * 100;
+}
+
 function sortPair(a: string, b: string): [string, string] {
   return a <= b ? [a, b] : [b, a];
 }
@@ -91,6 +100,7 @@ function arraysEqual(a: string[], b: string[]): boolean {
 export type DrillRow<T extends StatRow> = {
   row: T;
   addItems: string[];
+  pickRate: number;
 };
 
 export function getHeaderRow(
@@ -124,11 +134,21 @@ export function getItemsTabRows(
   bundle: UnitBundle,
   minGames: number = DEFAULT_MIN_GAMES,
 ): DrillRow<StatRow>[] {
+  // Pick rate is always "of games in the current parent state, how many
+  // also had this row's item(s)" - the parent state IS whatever
+  // getHeaderRow already resolves for this filter depth.
+  const parent = getHeaderRow(filterItems, bundle);
+  const denominator = parent?.games_count ?? 0;
+
   if (filterItems.length === 0) {
     return bundle.items
       .filter((r) => r.games_count >= minGames)
       .sort(byAvgPlacementAsc)
-      .map((row) => ({ row, addItems: [row.item_name] }));
+      .map((row) => ({
+        row,
+        addItems: [row.item_name],
+        pickRate: toPickRate(row.games_count, denominator),
+      }));
   }
 
   if (filterItems.length === 1) {
@@ -139,6 +159,7 @@ export function getItemsTabRows(
       .map((row) => ({
         row,
         addItems: [row.item_a === a ? row.item_b : row.item_a],
+        pickRate: toPickRate(row.games_count, denominator),
       }));
   }
 
@@ -153,6 +174,7 @@ export function getItemsTabRows(
       .map((row) => ({
         row,
         addItems: subtractMultiset([row.item_a, row.item_b, row.item_c], filterItems),
+        pickRate: toPickRate(row.games_count, denominator),
       }));
   }
 
@@ -160,16 +182,23 @@ export function getItemsTabRows(
   return [];
 }
 
+export type BuildRow = FullBuildStatRow & { pickRate: number };
+
 export function getBuildsTabRows(
   filterItems: string[],
   bundle: UnitBundle,
   minGames: number = DEFAULT_MIN_GAMES,
-): FullBuildStatRow[] {
+): BuildRow[] {
+  // Unlike the Items tab, build frequency is always relative to the unit's
+  // overall total - "what % of all games with this unit used this exact
+  // build" - regardless of how many chips are currently filtered.
+  const denominator = bundle.unit?.games_count ?? 0;
+
   if (filterItems.length === 3) {
     const sorted = [...filterItems].sort();
-    return bundle.builds.filter((r) =>
-      arraysEqual([r.item_a, r.item_b, r.item_c].sort(), sorted),
-    );
+    return bundle.builds
+      .filter((r) => arraysEqual([r.item_a, r.item_b, r.item_c].sort(), sorted))
+      .map((r) => ({ ...r, pickRate: toPickRate(r.games_count, denominator) }));
   }
 
   return bundle.builds
@@ -178,5 +207,6 @@ export function getBuildsTabRows(
         containsMultiset([r.item_a, r.item_b, r.item_c], filterItems) &&
         r.games_count >= minGames,
     )
-    .sort(byAvgPlacementAsc);
+    .sort(byAvgPlacementAsc)
+    .map((r) => ({ ...r, pickRate: toPickRate(r.games_count, denominator) }));
 }

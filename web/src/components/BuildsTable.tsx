@@ -2,20 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { HexSlot } from "./HexSlot";
-import { deriveRates, FullBuildStatRow, StatRow } from "@/lib/stats";
+import { BuildRow, deriveRates } from "@/lib/stats";
 import { ItemMeta } from "@/lib/tft-data";
 import { CYAN } from "@/lib/theme";
 
-type SortKey = "place" | "win" | "top4" | "games";
+type SortKey = "place" | "win" | "top4" | "pick" | "games";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "place", label: "Avg place" },
   { key: "win", label: "Win %" },
   { key: "top4", label: "Top 4 %" },
+  { key: "pick", label: "Pick %" },
   { key: "games", label: "Games" },
 ];
 
-function sortValue(row: StatRow, key: SortKey): number {
+function sortValue(row: BuildRow, key: SortKey): number {
   const { winRate, top4Rate } = deriveRates(row);
   switch (key) {
     case "place":
@@ -24,6 +25,8 @@ function sortValue(row: StatRow, key: SortKey): number {
       return winRate;
     case "top4":
       return top4Rate;
+    case "pick":
+      return row.pickRate;
     case "games":
       return row.games_count;
   }
@@ -33,7 +36,7 @@ export function BuildsTable({
   rows,
   itemMetaById,
 }: {
-  rows: FullBuildStatRow[];
+  rows: BuildRow[];
   itemMetaById: Record<string, ItemMeta>;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("win");
@@ -119,6 +122,17 @@ export function BuildsTable({
               </td>
               <td className="border-b border-hairline px-3 py-2.5 font-mono">
                 {top4Rate.toFixed(1)}%
+              </td>
+              <td className="border-b border-hairline px-3 py-2.5">
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono">{row.pickRate.toFixed(1)}%</span>
+                  <div className="h-1 w-16 overflow-hidden rounded-full bg-hairline">
+                    <div
+                      className="h-full bg-cyan"
+                      style={{ width: `${Math.min(100, row.pickRate)}%` }}
+                    />
+                  </div>
+                </div>
               </td>
               <td className="border-b border-hairline px-3 py-2.5 font-mono">
                 {row.games_count.toLocaleString()}
