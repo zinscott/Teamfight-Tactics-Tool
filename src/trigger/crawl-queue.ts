@@ -23,6 +23,32 @@ export const crawlQueue = schedules.task({
             logger.log("previous batch still draining, skipping this cycle", {fetchMatchHistoryQueue});
             return;
         }
+
+        const { data: latestMatch } = await supabase
+            .from("match_history")
+            .select("game_version")
+            .order("game_datetime", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        const latestPatch = latestMatch?.game_version.match(/<Releases\/([\d.]+)>/)?.[1] ?? null;
+
+        const { data: patchState } = await supabase
+            .from("patch_state")
+            .select("current_patch")
+            .eq("id", 1)
+            .maybeSingle();
+
+        if (latestPatch && patchState?.current_patch && latestPatch !== patchState.current_patch) {
+            logger.log(`Patch changed ${patchState.current_patch} -> ${latestPatch}, resetting all data`);
+            await supabase.rpc("reset_patch_data");
+            await supabase.from("patch_state").update({ current_patch: latestPatch }).eq("id", 1);
+        } 
+        else if (latestPatch && !patchState?.current_patch) {
+            // first run ever - just record the baseline, nothing to reset yet
+            await supabase.from("patch_state").update({ current_patch: latestPatch }).eq("id", 1);
+        }
+
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const {data: summoners, error} = await supabase
             .from("tracked_summoners")
