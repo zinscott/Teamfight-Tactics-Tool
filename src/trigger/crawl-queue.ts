@@ -34,7 +34,7 @@ export const crawlQueue = schedules.task({
         const latestPatch = latestMatch?.game_version.match(/<Releases\/([\d.]+)>/)?.[1] ?? null;
 
         const { data: patchState } = await supabase
-            .from("patch_state")
+            .from("patch_number")
             .select("current_patch")
             .eq("id", 1)
             .maybeSingle();
