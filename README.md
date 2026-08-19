@@ -12,9 +12,9 @@ Riot API  →  Trigger.dev (crawl + aggregate)  →  Supabase (Postgres)  →  N
 
 Three independent pieces, each deployed separately:
 
-- **Trigger.dev** (`src/trigger/`) — background jobs that crawl Riot's API on a schedule and write to Supabase. Nothing here talks to the frontend directly.
-- **Supabase** — the database. Both the crawler and the frontend read/write it, but never talk to each other.
-- **Frontend** (`web/`) — a Next.js app that only ever reads from Supabase (and Community Dragon, for unit/item names and icons). It never calls the Riot API.
+- **Trigger.dev** (`src/trigger/`) — background jobs that crawl Riot's API on a schedule and write to Supabase.
+- **Supabase** — the database. Both the crawler and the frontend read/write it.
+- **Frontend** (`web/`) — a Next.js app that only ever reads from Supabase (and Community Dragon, for unit/item names and icons).
 
 If the Trigger.dev crons ever stop running, the site doesn't break, it just serves increasingly stale data, since the frontend has no direct dependency on the crawler.
 
@@ -92,11 +92,11 @@ The item tables are multiset-aware by design, filtering by "2x Nashor's Tooth" i
 
 Next.js (App Router) + TypeScript + Tailwind. See `web/`'s own structure:
 
-- `lib/supabase.ts` — server-only Supabase client (service-role key, never sent to the browser).
+- `lib/supabase.ts` — server-only Supabase client.
 - `lib/tft-data.ts` — resolves raw Riot IDs (`TFT17_Aatrox`, `TFT_Item_InfinityEdge`) into real names/icons/costs via Community Dragon.
-- `lib/stats.ts` — the actual filter/drill-down logic (multiset containment, depth-based table selection). Pure functions, no React or Supabase. This is where the real behavior lives.
+- `lib/stats.ts` — the actual filter/drill-down logic (multiset containment, depth-based table selection).
 - `components/` — presentational pieces (tables, chips, tabs) plus `Explorer.tsx`, the one stateful component tying them together.
-- `app/` — the two pages: a searchable unit list (`/`) and the per-unit stats explorer (`/units/[unitId]`).
+- `app/` — the two pages, a searchable unit list (`/`) and the per-unit stats explorer (`/units/[unitId]`).
 
 
 
