@@ -33,7 +33,7 @@ export type UnitBundle = {
 
 // Rows below this many games are excluded from "best X" rankings - too
 // noisy to trust as a real signal. User-selectable, one of these presets.
-export const MIN_GAMES_OPTIONS = [50, 100, 300, 500] as const;
+export const MIN_GAMES_OPTIONS = [10, 50, 100, 300, 500] as const;
 export const DEFAULT_MIN_GAMES: number = MIN_GAMES_OPTIONS[0];
 
 export function deriveRates(row: StatRow) {
