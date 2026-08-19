@@ -1,5 +1,7 @@
 # Teamfight Tactics Tool
 
+**Live:** [teamfight-tactics-tool.vercel.app](https://teamfight-tactics-tool.vercel.app/)
+
 A TFT statistics site, in the vein of tactics.tools, focused on item builds: which items are actually good on which units, backed by real Grandmaster+ match data rather than a static tier list.
 
 ## Architecture
