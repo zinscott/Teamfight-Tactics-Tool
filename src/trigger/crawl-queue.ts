@@ -27,7 +27,7 @@ export const crawlQueue = schedules.task({
         const { data: latestMatch } = await supabase
             .from("match_history")
             .select("game_version")
-            .order("game_datetime", { ascending: false })
+            .order("game_datetime", {    ascending: false })
             .limit(1)
             .maybeSingle();
 
@@ -42,11 +42,11 @@ export const crawlQueue = schedules.task({
         if (latestPatch && patchState?.current_patch && latestPatch !== patchState.current_patch) {
             logger.log(`Patch changed ${patchState.current_patch} -> ${latestPatch}, resetting all data`);
             await supabase.rpc("reset_patch_data");
-            await supabase.from("patch_state").update({ current_patch: latestPatch }).eq("id", 1);
+            await supabase.from("patch_number").update({ current_patch: latestPatch }).eq("id", 1);
         } 
         else if (latestPatch && !patchState?.current_patch) {
             // first run ever - just record the baseline, nothing to reset yet
-            await supabase.from("patch_state").update({ current_patch: latestPatch }).eq("id", 1);
+            await supabase.from("patch_number").update({ current_patch: latestPatch }).eq("id", 1);
         }
 
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
