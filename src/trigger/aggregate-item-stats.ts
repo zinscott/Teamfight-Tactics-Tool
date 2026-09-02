@@ -16,6 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 //written to item_stats
 export const itemStats = schedules.task({
     id: "item-stats",
+    //on pause waiting for new set (available resource low)
     cron: "0 2-22/4 * * *",
     run: async() => {
         const playerBuild: {units:{character_id: string; itemNames: string[]}[]; placement: number; win: boolean} [] =[];

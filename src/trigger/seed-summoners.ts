@@ -48,6 +48,7 @@ async function fetchDiamond(division: string) {
 
 export const seedSummonersTask = schedules.task({
     id: "seed-summoners",
+    //on pause waiting for new set (available resource low)
     cron: "0 1 * * *",
     //prevents overlapping runs in a scheduled run
     queue: {
