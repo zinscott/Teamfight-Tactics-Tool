@@ -47,8 +47,33 @@ export const itemStats = schedules.task({
         const pairTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
         const fullTally = new Map<string, {games: number; wins: number; top4: number; placementTotal: number}>();
 
+        //non-playable/beta-test units that shouldn't be counted as real picks
+        const NON_PURCHASABLE_UNITS = new Set([
+            "TFT18_Akali",
+            "TFT18_Gromp",
+            "DA_18_EliseSpider",
+        ]);
+
+        const UNIT_ALIASES: Record<string, string> = {};
+
+        //any Lux variant (naming isn't consistent - "18" shows up before or after "Lux")
+        //should count as the base unit, not a separate entry
+        function resolveCharacterId(characterId: string): string {
+            if(characterId.toLowerCase().includes("lux")){
+                return "DA_Lux18_Base";
+            }
+            return UNIT_ALIASES[characterId] ?? characterId;
+        }
+
         for(const board of playerBuild){
-            for(const unit of board.units){
+            for(const rawUnit of board.units){
+                if(NON_PURCHASABLE_UNITS.has(rawUnit.character_id)){
+                    continue;
+                }
+                const unit = {
+                    ...rawUnit,
+                    character_id: resolveCharacterId(rawUnit.character_id),
+                };
                 //EmptyBag means no item equipped, ThiefsGloves will be ignored by pair and full build stats
                 const validItems = unit.itemNames.filter(name => name !== "TFT_Item_EmptyBag");
                 const pairableItems = validItems.filter(name => name !== "TFT_Item_ThiefsGloves");
