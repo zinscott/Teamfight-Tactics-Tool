@@ -35,6 +35,13 @@ export const fetchMatchHistory = schemaTask({
       const matchUrl = `https://americas.api.riotgames.com/tft/match/v1/matches/${matchId}`;
       const matchData = await riotFetch(matchUrl);
 
+      //set18 non purchasable units
+      const NON_PURCHASABLE_UNITS = new Set([
+        "TFT18_Akali",
+        "TFT18_Gromp",
+        "DA_18_EliseSpider"
+      ]);
+    
       const matchHistoryRow = {
         match_id: matchData.metadata.match_id,
         queue_id: matchData.info.queue_id,
@@ -52,14 +59,14 @@ export const fetchMatchHistory = schemaTask({
           throw new Error(`Supabase insert failed at match_history: ${historyError.message}`);
         }
         
-        const matchParticipantRows = matchData.info.participants.map((participant: {puuid: string; win: boolean; placement: number; /*traits: unknown[];*/ units: unknown[];})=>({
+        const matchParticipantRows = matchData.info.participants.map((participant: {puuid: string; win: boolean; placement: number; /*traits: unknown[];*/ units: {character_id: string}[];})=>({
           //match_id isn't on the participant object itself, attach it from the match row
           match_id: matchHistoryRow.match_id,
           puuid: participant.puuid,
           win: participant.win,
           placement: participant.placement,
           //traits: participant.traits,
-          units: participant.units,
+          units: participant.units.filter((u) => !NON_PURCHASABLE_UNITS.has(u.character_id)),
         }));
         
         const additionalSummoners = matchParticipantRows.map((summoner: {puuid:string}) => ({puuid: summoner.puuid, tier: null, division: null}));
