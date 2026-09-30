@@ -45,12 +45,24 @@ export function ItemsTable({
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("place");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
+  const [query, setQuery] = useState("");
+
+  function resolvedName(entry: DrillRow<StatRow>) {
+    return entry.addItems.map((id) => itemMetaById[id]?.name ?? id).join(" + ");
+  }
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((entry) => resolvedName(entry).toLowerCase().includes(q));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, query, itemMetaById]);
 
   const sorted = useMemo(() => {
-    return [...rows].sort(
+    return [...filtered].sort(
       (a, b) => (sortValue(a, sortKey) - sortValue(b, sortKey)) * sortDir,
     );
-  }, [rows, sortKey, sortDir]);
+  }, [filtered, sortKey, sortDir]);
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -69,7 +81,7 @@ export function ItemsTable({
     );
   }
 
-  if (sorted.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-hairline-strong p-6 text-center text-base text-text-mute">
         No item data for this filter yet.
@@ -78,89 +90,102 @@ export function ItemsTable({
   }
 
   return (
-    <table className="w-full border-collapse text-lg">
-      <thead>
-        <tr>
-          <th className="w-8 border-b border-hairline-strong px-3 py-2.5 text-left text-sm uppercase tracking-wide text-text-mute">
-            #
-          </th>
-          <th className="border-b border-hairline-strong px-3 py-2.5 text-left text-sm uppercase tracking-wide text-text-mute">
-            Item
-          </th>
-          {COLUMNS.map((col) => (
-            <th
-              key={col.key}
-              onClick={() => handleSort(col.key)}
-              className={`cursor-pointer border-b border-hairline-strong px-3 py-2.5 text-left text-sm uppercase tracking-wide select-none ${
-                sortKey === col.key ? "text-gold" : "text-text-mute hover:text-text-soft"
-              }`}
-            >
-              {col.label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {sorted.map((entry, idx) => {
-          const { row, addItems, pickRate } = entry;
-          const { winRate, top4Rate } = deriveRates(row);
-          const addedName = addItems
-            .map((id) => itemMetaById[id]?.name ?? id)
-            .join(" + ");
-          return (
-            <tr
-              key={idx}
-              onClick={() => onDrill(addItems)}
-              className="cursor-pointer hover:bg-panel-raised"
-            >
-              <td className="border-b border-hairline px-3 py-2.5 font-mono text-text-mute">
-                {idx + 1}
-              </td>
-              <td className="border-b border-hairline px-3 py-2.5">
-                <div className="flex items-center gap-2.5">
-                  <HexSlot
-                    size={36}
-                    borderColor={CYAN}
-                    fillColor="#1B2A22"
-                    iconUrl={itemMetaById[addItems[0]]?.iconUrl}
-                    label={addedName.slice(0, 3).toUpperCase()}
-                    alt={addedName}
-                  />
-                  <span>
-                    {addedName}
-                    <span className="ml-2 text-xs text-text-mute">
-                      click to drill in →
-                    </span>
-                  </span>
-                </div>
-              </td>
-              <td className="border-b border-hairline px-3 py-2.5 font-mono">
-                {row.avg_placement.toFixed(2)}
-              </td>
-              <td className="border-b border-hairline px-3 py-2.5 font-mono">
-                {winRate.toFixed(1)}%
-              </td>
-              <td className="border-b border-hairline px-3 py-2.5 font-mono">
-                {top4Rate.toFixed(1)}%
-              </td>
-              <td className="border-b border-hairline px-3 py-2.5">
-                <div className="flex flex-col gap-1">
-                  <span className="font-mono">{pickRate.toFixed(1)}%</span>
-                  <div className="h-1 w-16 overflow-hidden rounded-full bg-hairline">
-                    <div
-                      className="h-full bg-cyan"
-                      style={{ width: `${Math.min(100, pickRate)}%` }}
-                    />
-                  </div>
-                </div>
-              </td>
-              <td className="border-b border-hairline px-3 py-2.5 font-mono">
-                {row.games_count.toLocaleString()}
-              </td>
+    <div className="flex flex-col gap-3">
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search items..."
+        className="w-full max-w-xs rounded-md border border-hairline bg-panel px-4 py-2 text-base text-text placeholder:text-text-mute focus:border-hairline-strong focus:outline-none"
+      />
+
+      {sorted.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-hairline-strong p-6 text-center text-base text-text-mute">
+          No items match &quot;{query}&quot;.
+        </div>
+      ) : (
+        <table className="w-full border-collapse text-lg">
+          <thead>
+            <tr>
+              <th className="w-8 border-b border-hairline-strong px-3 py-2.5 text-left text-sm uppercase tracking-wide text-text-mute">
+                #
+              </th>
+              <th className="border-b border-hairline-strong px-3 py-2.5 text-left text-sm uppercase tracking-wide text-text-mute">
+                Item
+              </th>
+              {COLUMNS.map((col) => (
+                <th
+                  key={col.key}
+                  onClick={() => handleSort(col.key)}
+                  className={`cursor-pointer border-b border-hairline-strong px-3 py-2.5 text-left text-sm uppercase tracking-wide select-none ${
+                    sortKey === col.key ? "text-gold" : "text-text-mute hover:text-text-soft"
+                  }`}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
-          );
-        })}
-      </tbody>
-    </table>
+          </thead>
+          <tbody>
+            {sorted.map((entry, idx) => {
+              const { row, addItems, pickRate } = entry;
+              const { winRate, top4Rate } = deriveRates(row);
+              const addedName = resolvedName(entry);
+              return (
+                <tr
+                  key={idx}
+                  onClick={() => onDrill(addItems)}
+                  className="cursor-pointer hover:bg-panel-raised"
+                >
+                  <td className="border-b border-hairline px-3 py-2.5 font-mono text-text-mute">
+                    {idx + 1}
+                  </td>
+                  <td className="border-b border-hairline px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <HexSlot
+                        size={50}
+                        borderColor={CYAN}
+                        fillColor="#1B2A22"
+                        iconUrl={itemMetaById[addItems[0]]?.iconUrl}
+                        label={addedName.slice(0, 3).toUpperCase()}
+                        alt={addedName}
+                      />
+                      <span>
+                        {addedName}
+                        <span className="ml-2 text-xs text-text-mute">
+                          click to drill in →
+                        </span>
+                      </span>
+                    </div>
+                  </td>
+                  <td className="border-b border-hairline px-3 py-2.5 font-mono">
+                    {row.avg_placement.toFixed(2)}
+                  </td>
+                  <td className="border-b border-hairline px-3 py-2.5 font-mono">
+                    {winRate.toFixed(1)}%
+                  </td>
+                  <td className="border-b border-hairline px-3 py-2.5 font-mono">
+                    {top4Rate.toFixed(1)}%
+                  </td>
+                  <td className="border-b border-hairline px-3 py-2.5">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono">{pickRate.toFixed(1)}%</span>
+                      <div className="h-1 w-16 overflow-hidden rounded-full bg-hairline">
+                        <div
+                          className="h-full bg-cyan"
+                          style={{ width: `${Math.min(100, pickRate)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="border-b border-hairline px-3 py-2.5 font-mono">
+                    {row.games_count.toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
