@@ -44,7 +44,7 @@ export function FilterChipBar({
             className="flex min-w-[200px] items-center gap-3 rounded-lg border border-hairline-strong bg-panel-raised px-4 py-3"
           >
             <HexSlot
-              size={46}
+              size={58}
               borderColor={CYAN}
               fillColor="#1B2A22"
               iconUrl={meta?.iconUrl}
