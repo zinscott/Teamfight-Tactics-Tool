@@ -28,7 +28,6 @@ export function HexSlot({
         style={{
           width: size,
           height: size,
-          border: `2px solid ${borderColor}`,
           backgroundColor: fillColor,
         }}
       >
