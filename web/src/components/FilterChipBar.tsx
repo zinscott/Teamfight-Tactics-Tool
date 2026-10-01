@@ -45,6 +45,7 @@ export function FilterChipBar({
           >
             <HexSlot
               size={58}
+              shape="square"
               borderColor={CYAN}
               fillColor="#1B2A22"
               iconUrl={meta?.iconUrl}

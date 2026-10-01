@@ -103,6 +103,7 @@ export function BuildsTable({
                     <HexSlot
                       key={i}
                       size={44}
+                      shape="square"
                       borderColor={CYAN}
                       fillColor="#1B2A22"
                       iconUrl={itemMetaById[itemName]?.iconUrl}

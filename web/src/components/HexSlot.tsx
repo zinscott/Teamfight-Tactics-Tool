@@ -9,6 +9,7 @@ type HexSlotProps = {
   iconUrl?: string | null;
   label?: string;
   alt: string;
+  shape?: "hex" | "square";
 };
 
 export function HexSlot({
@@ -18,7 +19,39 @@ export function HexSlot({
   iconUrl,
   label,
   alt,
+  shape = "hex",
 }: HexSlotProps) {
+  if (shape === "square") {
+    return (
+      <div
+        className="relative shrink-0 overflow-hidden rounded-md"
+        style={{
+          width: size,
+          height: size,
+          border: `2px solid ${borderColor}`,
+          backgroundColor: fillColor,
+        }}
+      >
+        {iconUrl ? (
+          <Image
+            src={iconUrl}
+            alt={alt}
+            fill
+            sizes={`${size}px`}
+            className="object-cover"
+          />
+        ) : (
+          <span
+            className="flex h-full w-full items-center justify-center font-mono font-semibold"
+            style={{ color: borderColor, fontSize: Math.max(9, size * 0.28) }}
+          >
+            {label}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div

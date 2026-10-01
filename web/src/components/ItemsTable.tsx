@@ -143,6 +143,7 @@ export function ItemsTable({
                     <div className="flex items-center gap-2.5">
                       <HexSlot
                         size={50}
+                        shape="square"
                         borderColor={CYAN}
                         fillColor="#1B2A22"
                         iconUrl={itemMetaById[addItems[0]]?.iconUrl}
