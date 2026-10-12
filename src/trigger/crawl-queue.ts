@@ -15,9 +15,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const crawlQueue = schedules.task({
     id: "crawl-queue",
-    //run every 4 hours and check, if something still in queue skip
+    //run every 8 hours and check, if something still in queue skip
     //on pause waiting for new set (available resource low)
-    cron: "0 */4 * * *", 
+    cron: "0 */8 * * *", 
     run: async () => {
         const fetchMatchHistoryQueue = await queues.retrieve({type: "task", name: "fetch-match-history"});
         if(fetchMatchHistoryQueue.running > 0 || fetchMatchHistoryQueue.queued > 0){
